@@ -11,10 +11,9 @@
 #define DEGREE_MIN 0
 
 const int CAN_SEND_ID[] = {0x200, 0x1FF};
-const int CAN_RECEIVE_ID[] = {
-    0x201, 0x202, 0x203, 0x204,
-    0x205, 0x206, 0x207, 0x208
-};
+#define MAX_CAN_RECEIVE_ID 0x208
+#define MIN_CAN_RECEIVE_ID 0x201
+
 
 
 struct SendData {
