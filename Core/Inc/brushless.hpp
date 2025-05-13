@@ -2,6 +2,10 @@
 #define BRUSHLESS_H
 
 // write by yamashita
+// Referencing "brushless.h"
+// need to call BrushLess::CallBack
+// in "HAL_CAN_RxFifo0MsgPendingCallback"
+
 #include "main.h"
 #include "cmsis_os.h"
 #include "stdio.h"
