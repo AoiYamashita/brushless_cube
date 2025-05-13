@@ -24,6 +24,7 @@
 /* USER CODE BEGIN Includes */
 #include "stdio.h"
 #include "string.h"
+#include "brushless.hpp"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -99,40 +100,11 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
     }
 }
 
-const int CAN_SEND_ID[] = {0x200, 0x1FF};
-const int CAN_RECEIVE_ID[] = {
-    0x201, 0x202, 0x203, 0x204,
-    0x205, 0x206, 0x207, 0x208
-};
-
-struct SendData {
-    short speed[8];    
-};
-
-struct ReceiveData {
-	short degree;
-	short rpm;
-	short TC;
-	char temp;
-	char none;
-};
-
-ReceiveData R[8];
+BrushLess Bl(&hcan);
 
 void HAL_CAN_RxFifo0MsgPendingCallback(CAN_HandleTypeDef *hcan)
 {
-	CAN_RxHeaderTypeDef rxHeader;
-	uint8_t rxData[8];
-	// FIFO0からメッセージを読み出す
-	if (HAL_CAN_GetRxMessage(hcan, CAN_RX_FIFO0, &rxHeader, rxData) == HAL_OK)
-	{
-		for(int i = 0;i < 8;i++){
-			id = rxHeader.StdId;
-			if(rxHeader.StdId != CAN_RECEIVE_ID[i])continue;
-			char data[8] = {rxData[1],rxData[0],rxData[3],rxData[2],rxData[5],rxData[4],rxData[6],rxData[7]};
-			memcpy((ReceiveData*)&(R[i]),data,8);
-		}
-	}
+	Bl.CallBack(hcan);
 }
 /* USER CODE END 0 */
 
@@ -169,9 +141,7 @@ int main(void)
   MX_CAN_Init();
   /* USER CODE BEGIN 2 */
   HAL_UART_Receive_IT(&huart2, &rx_buffer, sizeof(rx_buffer));
-  HAL_CAN_Start(&hcan);
-  HAL_CAN_ActivateNotification(&hcan, CAN_IT_TX_MAILBOX_EMPTY | CAN_IT_RX_FIFO0_MSG_PENDING);
-  
+  Bl.Init();
   /* USER CODE END 2 */
 
   /* Init scheduler */
@@ -293,22 +263,7 @@ static void MX_CAN_Init(void)
     Error_Handler();
   }
   /* USER CODE BEGIN CAN_Init 2 */
-  CAN_FilterTypeDef sFilterConfig;
 
-  sFilterConfig.FilterBank = 0;
-  sFilterConfig.FilterMode = CAN_FILTERMODE_IDMASK;
-  sFilterConfig.FilterScale = CAN_FILTERSCALE_32BIT;
-  sFilterConfig.FilterIdHigh = 0x0000;
-  sFilterConfig.FilterIdLow = 0x0000;
-  sFilterConfig.FilterMaskIdHigh = 0x0000;
-  sFilterConfig.FilterMaskIdLow = 0x0000;
-  sFilterConfig.FilterFIFOAssignment = CAN_RX_FIFO0;
-  sFilterConfig.FilterActivation = ENABLE;
-  sFilterConfig.SlaveStartFilterBank = 14; // CAN1のみ使用時は無視されます
-
-  if (HAL_CAN_ConfigFilter(&hcan, &sFilterConfig) != HAL_OK) {
-      Error_Handler();
-  }
   /* USER CODE END CAN_Init 2 */
 
 }
@@ -384,38 +339,17 @@ static void MX_GPIO_Init(void)
 void StartSerialTask(void *argument)
 {
   /* USER CODE BEGIN 5 */
-  SendData S;
   /* Infinite loop */
   
   for(;;)
   {
     char buff[25];
     //int size = sprintf(buff,"hello : %.3f\n",sendData);
-    int size = sprintf(buff,"hello : %d\n",R[0].rpm);
+    int size = sprintf(buff,"hello : %d\n",Bl.R[0].rpm);
 		HAL_UART_Transmit(&huart2, (uint8_t *)buff, size, 50);
     
-    float sp = sendFl;
-    if (sp > 1.0f) sp = 1.0f;
-    if (sp < -1.0f) sp = -1.0f;
-    S.speed[0] = 10000 * sp;
-
-    CAN_TxHeaderTypeDef TxHeader;
-    uint32_t TxMailbox;
-    if (0 < HAL_CAN_GetTxMailboxesFreeLevel(&hcan)) {
-      for (int i = 0; i < 2; i++) {
-        char b[8];
-        memcpy((char*)b, (&S)->speed + (4 * i), 8);
-        uint8_t send[8] = {b[1], b[0], b[3],b[2],b[5],b[4],b[7],b[6]};
-        TxHeader.StdId = CAN_SEND_ID[i];// 受取手のCANのID
-        TxHeader.RTR = CAN_RTR_DATA;
-        TxHeader.IDE = CAN_ID_STD;
-        TxHeader.DLC = 8;//データ長を8byteに設定
-        TxHeader.TransmitGlobalTime = DISABLE;
-        if (HAL_CAN_AddTxMessage(&hcan, &TxHeader, send, &TxMailbox) != HAL_OK) {
-          Error_Handler();
-        }
-      }
-    }
+    Bl.SetSpeed(0,sendFl);
+    Bl.Write();
     osDelay(10);
   }
   /* USER CODE END 5 */
