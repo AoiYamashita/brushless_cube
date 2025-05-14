@@ -9,6 +9,7 @@
 #include "main.h"
 #include "cmsis_os.h"
 #include "stdio.h"
+#include "math.h"
 #include "string.h"
 
 #define DEGREE_MAX 8191

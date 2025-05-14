@@ -5,7 +5,7 @@ BrushLess::BrushLess(CAN_HandleTypeDef *hcan){
 }
 
 void BrushLess::Init(){
-    CAN_FilterTypeDef sFilterConfig;
+    CAN_FilterTypeDef sFilterConfig;// 0x201 ~ 0x207
 
     sFilterConfig.FilterBank = 0;
     sFilterConfig.FilterMode = CAN_FILTERMODE_IDMASK;
@@ -22,7 +22,7 @@ void BrushLess::Init(){
         Error_Handler();
     }
 
-    CAN_FilterTypeDef s1FilterConfig;
+    CAN_FilterTypeDef s1FilterConfig;// 0x208
 
     s1FilterConfig.FilterBank = 1;
     s1FilterConfig.FilterMode = CAN_FILTERMODE_IDMASK;
@@ -56,15 +56,14 @@ void BrushLess::CallBack(CAN_HandleTypeDef *hcan){
 
 void BrushLess::SetSpeed(int id,float speed){
     float sp = speed;
-    if (sp > 1.0f) sp = 1.0f;
-    if (sp < -1.0f) sp = -1.0f;
+    if (abs(sp) > 1)sp = sp/abs(sp);
     S.speed[id] = 10000 * sp;
 }
 
 bool BrushLess::Write(){
     CAN_TxHeaderTypeDef TxHeader;
     uint32_t TxMailbox;
-    if (0 >= HAL_CAN_GetTxMailboxesFreeLevel(can)) return false;
+    if (HAL_CAN_GetTxMailboxesFreeLevel(can) <= 0) return false;
     for (int i = 0; i < 2; i++) {
         uint8_t b[8];
         memcpy((char*)b, (&S)->speed + (4 * i), 8);

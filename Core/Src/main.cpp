@@ -92,6 +92,12 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
         case '2':
           sendFl -= 0.01;
           break;
+        case 'a':
+          id ++;
+          break;
+        case 's':
+          id --;
+          break;
         default:
           break;
         }
@@ -340,16 +346,17 @@ void StartSerialTask(void *argument)
 {
   /* USER CODE BEGIN 5 */
   /* Infinite loop */
-  
+  int iswrite;
   for(;;)
   {
+
+    Bl.SetSpeed(id,sendFl);
+    iswrite = Bl.Write();
+
     char buff[25];
     //int size = sprintf(buff,"hello : %.3f\n",sendData);
-    int size = sprintf(buff,"hello : %d\n",Bl.R[0].rpm);
+    int size = sprintf(buff,"%d : %.3lf : %d\n",id,sendFl,Bl.R[id].rpm);
 		HAL_UART_Transmit(&huart2, (uint8_t *)buff, size, 50);
-    
-    Bl.SetSpeed(0,sendFl);
-    Bl.Write();
     osDelay(10);
   }
   /* USER CODE END 5 */
