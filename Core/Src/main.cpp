@@ -355,7 +355,7 @@ void StartSerialTask(void *argument)
 
     char buff[25];
     //int size = sprintf(buff,"hello : %.3f\n",sendData);
-    int size = sprintf(buff,"%d : %.3lf : %d\n",id,sendFl,Bl.R[id].rpm);
+    int size = sprintf(buff,"%d : %.3lf : %.5d : %d\n",id,sendFl,Bl.R[id].rpm,Bl.R[id].TC > 250);
 		HAL_UART_Transmit(&huart2, (uint8_t *)buff, size, 50);
     osDelay(10);
   }
